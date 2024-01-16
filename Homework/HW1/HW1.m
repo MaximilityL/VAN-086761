@@ -32,7 +32,7 @@ disp(R_B2G)
 function rot_mat = eul2rotmat(phi, theta, psi) 
     % Declaration of rotation matrices about the principal axes
     R_x = [1, 0, 0; 0, cos(phi), sin(phi); 0, -sin(phi), cos(phi)];
-    R_y = [cos(theta), 0, 0; 0, 1, 0; sin(theta), 0, cos(theta)];
+    R_y = [cos(theta), 0, -sin(theta); 0, 1, 0; sin(theta), 0, cos(theta)];
     R_z = [cos(psi), sin(psi), 0; -sin(psi), cos(psi), 0; 0, 0, 1];
 
     % Calculation of the corresponding rotation matrix by roll-pitch-yaw
@@ -44,9 +44,6 @@ end
 function eul_angles = rotmat2eul(R) 
     % Using Euler's rotation theorem, first we find the rotation angle and
     % axis of rotation of the rotation matrix input.
-    theta = acos(0.5*(trace(R)-1));
-    n_vec = 1/(2*sin(theta))*[R(3,2)-R(2,3); R(1,3)-R(3,1), R(2,1)-R(1,2)];
-    eul_angles = n_vec;
 end
 
 
