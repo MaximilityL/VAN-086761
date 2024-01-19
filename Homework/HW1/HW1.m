@@ -158,6 +158,7 @@ function T = poseTransformationFromAngleAndTranslationVector(angleInDeg,t)
         zeros(1,2), 1];
 end
 
+% (3.b) Function to Plot the data and make jpg
 function plotPaths(data1, data2, fileName, resolution)
     % Check if the input matrices have the same number of columns
     assert(size(data1, 2) == size(data2, 2), 'Input matrices must have the same number of columns');
@@ -197,7 +198,7 @@ function plotPaths(data1, data2, fileName, resolution)
 end
 
 
-
+% (3.b) Function to calculate the error
 function [errorX, errorY, totalError, errorAngle] = calculateErrorAndAngle(data1, data2)
     % Check if the input matrices have the same number of columns
     assert(size(data1, 2) == size(data2, 2), 'Input matrices must have the same number of columns');
