@@ -14,26 +14,17 @@ set(0, 'DefaultLineLineWidth', 1.2);
 % The function's name is: eul2rotmat(phi, theta, psi)
 
 % (b) Calculation of the rotation matrix from Body to Global
-<<<<<<< HEAD
 psi_b = pi/7;
 theta_b = pi/5;
 phi_b = pi/4;
 R_B2G = eul2rotmat(phi_b, theta_b, psi_b);
 disp('The rotation matrix from Body to Global of the given input is:')
 disp(R_B2G)
-=======
-psi = pi/7;
-theta = pi/5;
-phi = pi/4;
-R_B2G = eul2rotmat(phi, theta, psi);
-disp('The rotation matrix from Body to Global of the given input is:');
-disp(R_B2G);
->>>>>>> 7c89d4f1967626928cf96a6bdffa13452d2a8cb0
 
 % (c) The required function is attached below in the "Functions" Section.
 % The function's name is: rotmat2eul(R)
 
-<<<<<<< HEAD
+
 % (d) Calculation of the Euler angles in degrees from the given Rotation
 % Matrix
 R_d = [0.813797681, -0.440969611, 0.378522306;...
@@ -46,7 +37,7 @@ theta_d = theta_d*(180/pi);
 psi_d = psi_d*(180/pi);
 disp(['The Euler angles from the given rotation matrix are:'])
 
-=======
+
 % Calculation othe Euler Angles from a given Rotation Matrix
 R=[0.813797681, -0.440969611,  0.378522306;
     0.46984631, 0.882564119, 0.0180283112;
@@ -61,7 +52,7 @@ disp('phi:');
 disp(rad2deg(phi));
 disp('psi:');
 disp(rad2deg(psi));
->>>>>>> 7c89d4f1967626928cf96a6bdffa13452d2a8cb0
+
 
 
 %% Functions
