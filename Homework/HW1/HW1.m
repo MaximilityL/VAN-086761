@@ -53,10 +53,73 @@ disp(rad2deg(phi));
 disp('psi:');
 disp(rad2deg(psi));
 
+%% Part 2 - 3D Rigid Transformation.
+% Given Rotation Matrix and translation vector in G frame
+R_G2C=[0.5363, -0.844, 0;
+        0.844, 0.5363, 0;
+         0, 0, 1];
+t_C2G = transpose([-451.2459, 257.0322, 400]);
 
+T_G2C = rotmatandtranslationvector2posetransformation(R_G2C,t_C2G);
 
+disp('The Pose Transformation Matrix is:');
+disp(T_G2C);
+
+% Now Calculate a point in 3D space in global frame to camera frame
+
+l_G = transpose([450, 400, 50]);
+
+l_G_Aug = [l_G; 1];
+
+l_C_Aug = T_G2C * l_G_Aug;
+
+disp('The 3D point in the camera frame is:');
+disp(l_C_Aug(1:3));
+
+%% Part 3 - Pose Composition
+% (a) We want to find the pose transformation matrices
+
+t_command = transpose([1,0]);
+t_actual = transpose([1.01,0]);
+
+degree_command = 0; %degrees
+degree_actual = 1; %degrees
+
+T_command = poseTransformationFromAngleAndTranslationVector(degree_command,t_command);
+T_actual = poseTransformationFromAngleAndTranslationVector(degree_actual,t_actual);
+
+% (b) we shall now simulate the movement for 10 steps
+x_0 = transpose([0,0]);
+x_0_Aug = transpose([0, 0, 1]);
+
+x_command_Aug = x_0_Aug;
+x_actual_Aug = x_0_Aug;
+
+numberOfTimeSteps = 10;
+
+for i=1:numberOfTimeSteps
+   x_command_Aug = [x_command_Aug, T_command * x_command_Aug(:,i)];
+   x_actual_Aug = [x_actual_Aug, T_actual * x_actual_Aug(:,i)];
+end
+x_command = x_command_Aug;
+x_command(3,:) = [];
+x_actual = x_actual_Aug;
+x_actual(3,:) = [];
+
+plotPaths(x_command, x_actual, 'robotPlot', 900);
+
+[errorX, errorY, totalError, errorAngle] = calculateErrorAndAngle(x_command, x_actual);
+
+disp('The error in X is:');
+disp(errorX);
+disp('The error in Y is:');
+disp(errorY);
+disp('The total error  is:');
+disp(totalError);
+disp('The angle error is:');
+disp(errorAngle);
 %% Functions
-% (a) Euler angles (in radians) to rotation matrix.
+% (1.a) Euler angles (in radians) to rotation matrix.
 function rot_mat = eul2rotmat(phi, theta, psi) 
     % Declaration of rotation matrices about the principal axes
     R_x = [1, 0, 0; 0, cos(phi), sin(phi); 0, -sin(phi), cos(phi)];
@@ -68,7 +131,7 @@ function rot_mat = eul2rotmat(phi, theta, psi)
     rot_mat = R_z*R_y*R_x;
 end
 
-% (a) Rotation matrix to Euler angles (in radians).
+% (1.c) Rotation matrix to Euler angles (in radians).
 % returns an array of angles [phi, theta, psi]
 function [theta, phi, psi] = rotmat2eul(R) 
     % From the rotation matrix obtained assuming roll-pitch-yaw order we
@@ -76,6 +139,85 @@ function [theta, phi, psi] = rotmat2eul(R)
     theta = asin(R(3,1));
     phi = -atan(R(3,2)/R(3,3));
     psi = -atan(R(2,1)/R(1,1));
+end
+
+% (2) Rotation Matrix and Translation Vector to Pose Transformation Matrix
+function T = rotmatandtranslationvector2posetransformation(R,t)
+    T=[R, t;
+        zeros(1,3), 1];
+end
+
+% (3.a) Calculate ground vehicle Pose Transformation matrix from angle and 
+% translation vector
+
+function T = poseTransformationFromAngleAndTranslationVector(angleInDeg,t)
+    angleInRad = deg2rad(angleInDeg);
+    R = [cos(angleInRad), sin(angleInRad);
+         -sin(angleInRad), cos(angleInRad)];
+    T = [R, t;
+        zeros(1,2), 1];
+end
+
+function plotPaths(data1, data2, fileName, resolution)
+    % Check if the input matrices have the same number of columns
+    assert(size(data1, 2) == size(data2, 2), 'Input matrices must have the same number of columns');
+
+    % Create a new figure
+    figure;
+
+    % Plot the first set of data
+    plot(data1(1, :), data1(2, :), 'o-', 'LineWidth', 2, 'DisplayName', 'Command');
+    hold on;
+
+    % Plot the second set of data
+    plot(data2(1, :), data2(2, :), 's-', 'LineWidth', 2, 'DisplayName', 'Actual');
+
+    % Add a grid
+    grid on;
+
+    % Set axis limits to make the plot tight
+    axis tight;
+
+    % Add title
+    title('Plot of Ground Movement of the Autonomous Robot');
+
+    % Add labels for x and y axes
+    xlabel('X-axis [m]');
+    ylabel('Y-axis [m]');
+
+    % Add legend
+    legend('Location', 'best');
+
+    % Hold off to stop overlaying subsequent plots on the same figure
+    hold off;
+
+    % Save the plot as a high-resolution JPG file
+    print(gcf, fileName, '-djpeg', ['-r' num2str(resolution)]);
+    disp(['Plot saved as ', fileName, ' with resolution ', num2str(resolution), ' DPI']);
+end
+
+
+
+function [errorX, errorY, totalError, errorAngle] = calculateErrorAndAngle(data1, data2)
+    % Check if the input matrices have the same number of columns
+    assert(size(data1, 2) == size(data2, 2), 'Input matrices must have the same number of columns');
+
+    % Extract the last x and y values
+    lastX1 = data1(1, end);
+    lastY1 = data1(2, end);
+    
+    lastX2 = data2(1, end);
+    lastY2 = data2(2, end);
+
+    % Calculate the error in x and y
+    errorX = abs(lastX1 - lastX2);
+    errorY = abs(lastY1 - lastY2);
+
+    % Calculate the total error
+    totalError = sqrt(errorX^2 + errorY^2);
+
+    % Calculate the angle (in degrees) between the vectors
+    errorAngle = 90 + atan2d(lastY2 - lastY1, lastX2 - lastX1);
 end
 
 
