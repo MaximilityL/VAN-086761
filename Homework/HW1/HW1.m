@@ -11,20 +11,33 @@ set(0, 'DefaultLineLineWidth', 1.2);
 
 %% Part 1 - Rotations.
 % (a) The required function is attached below in the "Functions" Section.
+% The function's name is: eul2rotmat(phi, theta, psi)
 
 % (b) Calculation of the rotation matrix from Body to Global
 psi = pi/7;
 theta = pi/5;
 phi = pi/4;
 R_B2G = eul2rotmat(phi, theta, psi);
-disp('The rotation matrix from Body to Global of the given input is:')
-disp(R_B2G)
+disp('The rotation matrix from Body to Global of the given input is:');
+disp(R_B2G);
 
 % (c) The required function is attached below in the "Functions" Section.
+% The function's name is: rotmat2eul(R)
 
+% Calculation othe Euler Angles from a given Rotation Matrix
+R=[0.813797681, -0.440969611,  0.378522306;
+    0.46984631, 0.882564119, 0.0180283112;
+     -0.342020143, 0.163175911, 0.925416578];
+disp('From the rotation matrix:');
+disp(R);
+[theta, phi, psi] = rotmat2eul(R);
 
-
-
+disp('theta:');
+disp(rad2deg(theta));
+disp('phi:');
+disp(rad2deg(phi));
+disp('psi:');
+disp(rad2deg(psi));
 
 
 %% Functions
@@ -41,12 +54,13 @@ function rot_mat = eul2rotmat(phi, theta, psi)
 end
 
 % (a) Rotation matrix to Euler angles (in radians).
-function eul_angles = rotmat2eul(R) 
-    % Using Euler's rotation theorem, first we find the rotation angle and
-    % axis of rotation of the rotation matrix input.
-    theta = acos(0.5*(trace(R)-1));
-    n_vec = 1/(2*sin(theta))*[R(3,2)-R(2,3); R(1,3)-R(3,1), R(2,1)-R(1,2)];
-    eul_angles = n_vec;
+% returns an array of angles [phi, theta, psi]
+function [theta, phi, psi] = rotmat2eul(R) 
+    % From the rotation matrix obtained assuming roll-pitch-yaw order we
+    % determined the Euler angles
+    theta = asin(R(3,1));
+    phi = -atan(R(3,2)/R(3,3));
+    psi = -atan(R(2,1)/R(1,1));
 end
 
 
