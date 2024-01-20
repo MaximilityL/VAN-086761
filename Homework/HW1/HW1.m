@@ -60,7 +60,7 @@ R_G2C=[0.5363, -0.844, 0;
          0, 0, 1];
 t_C2G = transpose([-451.2459, 257.0322, 400]);
 
-T_G2C = rotmatandtranslationvector2posetransformation(R_G2C,t_C2G);
+T_G2C = rotmatandtranslationvector2posetransformation(R_G2C,R_G2C * t_C2G);
 
 disp('The Pose Transformation Matrix is:');
 disp(T_G2C);
@@ -85,9 +85,13 @@ t_actual = transpose([1.01,0]);
 degree_command = 0; %degrees
 degree_actual = 1; %degrees
 
-T_command = poseTransformationFromAngleAndTranslationVector(degree_command,t_command);
-T_actual = poseTransformationFromAngleAndTranslationVector(degree_actual,t_actual);
-
+R_command = calculateRotationMatrixFromDeg(degree_command);
+R_actual = calculateRotationMatrixFromDeg(degree_actual);
+ 
+T_command_0 = poseTransformationFromAngleAndTranslationVector(degree_command,t_command);
+T_command = T_command_0;
+T_actual_0 = poseTransformationFromAngleAndTranslationVector(degree_actual,t_actual);
+T_actual = T_actual_0;
 % (b) we shall now simulate the movement for 10 steps
 x_0 = transpose([0,0]);
 x_0_Aug = transpose([0, 0, 1]);
@@ -97,10 +101,16 @@ x_actual_Aug = x_0_Aug;
 
 numberOfTimeSteps = 10;
 
+
 for i=1:numberOfTimeSteps
-   x_command_Aug = [x_command_Aug, T_command * x_command_Aug(:,i)];
-   x_actual_Aug = [x_actual_Aug, T_actual * x_actual_Aug(:,i)];
+   x_command_Aug = [x_command_Aug, T_command * x_command_Aug(:,1)];
+   T_command = T_command * T_command_0;
+    
+   x_actual_Aug = [x_actual_Aug, oppositeT(T_actual) * x_command_Aug(:,1)];
+   T_actual = T_actual * T_actual_0;
+   
 end
+
 x_command = x_command_Aug;
 x_command(3,:) = [];
 x_actual = x_actual_Aug;
@@ -151,12 +161,23 @@ end
 % translation vector
 
 function T = poseTransformationFromAngleAndTranslationVector(angleInDeg,t)
-    angleInRad = deg2rad(angleInDeg);
-    R = [cos(angleInRad), sin(angleInRad);
-         -sin(angleInRad), cos(angleInRad)];
+    R = calculateRotationMatrixFromDeg(angleInDeg);
     T = [R, t;
         zeros(1,2), 1];
 end
+% (3.a) Calculate ground vehicle Rotation Matrix R from angle
+function R = calculateRotationMatrixFromDeg(angleInDeg)
+    angleInRad = deg2rad(angleInDeg);
+    R = [cos(angleInRad), sin(angleInRad);
+         -sin(angleInRad), cos(angleInRad)];
+end
+
+function T_opposite = oppositeT(T)
+    R_new = transpose(T(1:2,1:2));
+    t_new = R_new * T(1:2,3);
+    T_opposite = [R_new, t_new;
+        zeros(1,2), 1];
+end 
 
 % (3.b) Function to Plot the data and make jpg
 function plotPaths(data1, data2, fileName, resolution)
@@ -218,7 +239,7 @@ function [errorX, errorY, totalError, errorAngle] = calculateErrorAndAngle(data1
     totalError = sqrt(errorX^2 + errorY^2);
 
     % Calculate the angle (in degrees) between the vectors
-    errorAngle = 90 + atan2d(lastY2 - lastY1, lastX2 - lastX1);
+    errorAngle = atan2(lastY2 - data2(2, end-1), lastX2 - data2(1, end-1));
 end
 
 

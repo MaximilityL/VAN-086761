@@ -60,7 +60,7 @@ R_G2C=[0.5363, -0.844, 0;
          0, 0, 1];
 t_C2G = transpose([-451.2459, 257.0322, 400]);
 
-T_G2C = rotmatandtranslationvector2posetransformation(R_G2C,t_C2G);
+T_G2C = rotmatandtranslationvector2posetransformation(R_G2C,R_G2C * t_C2G);
 
 disp('The Pose Transformation Matrix is:');
 disp(T_G2C);
@@ -85,8 +85,11 @@ t_actual = transpose([1.01,0]);
 degree_command = 0; %degrees
 degree_actual = 1; %degrees
 
-T_command = poseTransformationFromAngleAndTranslationVector(degree_command,t_command);
-T_actual = poseTransformationFromAngleAndTranslationVector(degree_actual,t_actual);
+R_command = calculateRotationMatrixFromDeg(degree_command);
+R_actual = calculateRotationMatrixFromDeg(degree_actual);
+ 
+T_command_0 = poseTransformationFromAngleAndTranslationVector(degree_command,t_command);
+T_actual_0 = poseTransformationFromAngleAndTranslationVector(degree_actual,t_actual);
 
 % (b) we shall now simulate the movement for 10 steps
 x_0 = transpose([0,0]);
@@ -96,16 +99,39 @@ x_command_Aug = x_0_Aug;
 x_actual_Aug = x_0_Aug;
 
 numberOfTimeSteps = 10;
+% x_command_Aug = [x_command_Aug, T_command_0 * x_command_Aug(:,1)];
+% x_actual_Aug = [x_actual_Aug, T_actual_0 * x_actual_Aug(:,1)];
+
 
 for i=1:numberOfTimeSteps
    x_command_Aug = [x_command_Aug, T_command * x_command_Aug(:,i)];
-   x_actual_Aug = [x_actual_Aug, T_actual * x_actual_Aug(:,i)];
-end
-x_command = x_command_Aug
-x_command(3,:) =
-x_actual = x_actual_Aug
-plotVectorsWithLabels(x_command_Aug(), x_actual_Aug());
+   % T_command = [T_command(1:2,1:2) * R_command, T_command(1:2,1:2) * x_command_Aug(1:2,i+1) + x_command_Aug(1:2,i)  ;zeros(1:2),1];
+   T_command = T_command * T_command_0;
 
+   x_actual_Aug = [x_actual_Aug, T_actual * x_actual_Aug(:,1)];
+   % T_actual = [T_actual(1:2,1:2) * R_actual, T_actual(1:2,1:2) * x_actual_Aug(1:2,i+1) + x_actual_Aug(1:2,i)  ;zeros(1:2),1];
+   T_actual = T_actual * T_actual_0;
+   
+   
+end
+
+x_command = x_command_Aug;
+x_command(3,:) = [];
+x_actual = x_actual_Aug;
+x_actual(3,:) = [];
+
+plotPaths(x_command, x_actual, 'robotPlot', 900);
+
+[errorX, errorY, totalError, errorAngle] = calculateErrorAndAngle(x_command, x_actual);
+
+disp('The error in X is:');
+disp(errorX);
+disp('The error in Y is:');
+disp(errorY);
+disp('The total error  is:');
+disp(totalError);
+disp('The angle error is:');
+disp(errorAngle);
 %% Functions
 % (1.a) Euler angles (in radians) to rotation matrix.
 function rot_mat = eul2rotmat(phi, theta, psi) 
@@ -139,42 +165,83 @@ end
 % translation vector
 
 function T = poseTransformationFromAngleAndTranslationVector(angleInDeg,t)
-    angleInRad = deg2rad(angleInDeg);
-    R = [cos(angleInRad), sin(angleInRad);
-         -sin(angleInRad), cos(angleInRad)];
+    R = calculateRotationMatrixFromDeg(angleInDeg);
     T = [R, t;
         zeros(1,2), 1];
 end
+% (3.a) Calculate ground vehicle Rotation Matrix R from angle
+function R = calculateRotationMatrixFromDeg(angleInDeg)
+    angleInRad = deg2rad(angleInDeg);
+    R = [cos(angleInRad), sin(angleInRad);
+         -sin(angleInRad), cos(angleInRad)];
+end
 
-function plotVectorsWithLabels(data1, data2)
-    % Check if the input structures have the same length
-    assert(length(data1.x) == length(data1.y) && length(data2.x) == length(data2.y), 'Input vectors must have the same length');
+function T_new = poseComposition(T_old)
+    R_new 
+end 
+
+% (3.b) Function to Plot the data and make jpg
+function plotPaths(data1, data2, fileName, resolution)
+    % Check if the input matrices have the same number of columns
+    assert(size(data1, 2) == size(data2, 2), 'Input matrices must have the same number of columns');
 
     % Create a new figure
     figure;
 
     % Plot the first set of data
-    plot(data1.x, data1.y, 'o-', 'LineWidth', 2, 'DisplayName', 'Vector 1');
+    plot(data1(1, :), data1(2, :), 'o-', 'LineWidth', 2, 'DisplayName', 'Command');
     hold on;
 
     % Plot the second set of data
-    plot(data2.x, data2.y, 's-', 'LineWidth', 2, 'DisplayName', 'Vector 2');
+    plot(data2(1, :), data2(2, :), 's-', 'LineWidth', 2, 'DisplayName', 'Actual');
 
     % Add a grid
     grid on;
 
+    % Set axis limits to make the plot tight
+    axis tight;
+
     % Add title
-    title('Plot of Two Vectors');
+    title('Plot of Ground Movement of the Autonomous Robot');
 
     % Add labels for x and y axes
-    xlabel('X-axis');
-    ylabel('Y-axis');
+    xlabel('X-axis [m]');
+    ylabel('Y-axis [m]');
 
     % Add legend
     legend('Location', 'best');
 
     % Hold off to stop overlaying subsequent plots on the same figure
     hold off;
+
+    % Save the plot as a high-resolution JPG file
+    print(gcf, fileName, '-djpeg', ['-r' num2str(resolution)]);
+    disp(['Plot saved as ', fileName, ' with resolution ', num2str(resolution), ' DPI']);
 end
+
+
+% (3.b) Function to calculate the error
+function [errorX, errorY, totalError, errorAngle] = calculateErrorAndAngle(data1, data2)
+    % Check if the input matrices have the same number of columns
+    assert(size(data1, 2) == size(data2, 2), 'Input matrices must have the same number of columns');
+
+    % Extract the last x and y values
+    lastX1 = data1(1, end);
+    lastY1 = data1(2, end);
+    
+    lastX2 = data2(1, end);
+    lastY2 = data2(2, end);
+
+    % Calculate the error in x and y
+    errorX = abs(lastX1 - lastX2);
+    errorY = abs(lastY1 - lastY2);
+
+    % Calculate the total error
+    totalError = sqrt(errorX^2 + errorY^2);
+
+    % Calculate the angle (in degrees) between the vectors
+    errorAngle = 90 + atan2d(lastY2 - lastY1, lastX2 - lastX1);
+end
+
 
     
