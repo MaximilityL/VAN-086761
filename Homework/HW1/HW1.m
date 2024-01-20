@@ -88,25 +88,25 @@ degree_actual = 1; %degrees
 R_command = calculateRotationMatrixFromDeg(degree_command);
 R_actual = calculateRotationMatrixFromDeg(degree_actual);
  
-T_command_0 = poseTransformationFromAngleAndTranslationVector(degree_command,t_command);
+T_command_0 = poseTransformationFromAngleAndTranslationVector(degree_command,t_command); % T_c(0 -> 1)
 T_command = T_command_0;
-T_actual_0 = poseTransformationFromAngleAndTranslationVector(degree_actual,t_actual);
+T_actual_0 = poseTransformationFromAngleAndTranslationVector(degree_actual,t_actual);% T_a(0 -> 1)
 T_actual = T_actual_0;
-% (b) we shall now simulate the movement for 10 steps
+
 x_0 = transpose([0,0]);
-x_0_Aug = transpose([0, 0, 1]);
+x_0_Aug = createAugmentedVector(x_0);
 
 x_command_Aug = x_0_Aug;
 x_actual_Aug = x_0_Aug;
 
+% (b) we shall now simulate the movement for 10 steps
 numberOfTimeSteps = 10;
 
-
 for i=1:numberOfTimeSteps
-   x_command_Aug = [x_command_Aug, T_command * x_command_Aug(:,1)];
+   x_command_Aug = [x_command_Aug, createAugmentedVector(getTranslationInOriginFrame(T_command))];
    T_command = T_command * T_command_0;
     
-   x_actual_Aug = [x_actual_Aug, oppositeT(T_actual) * x_command_Aug(:,1)];
+   x_actual_Aug = [x_actual_Aug, createAugmentedVector(getTranslationInOriginFrame(T_actual))];
    T_actual = T_actual * T_actual_0;
    
 end
@@ -172,13 +172,13 @@ function R = calculateRotationMatrixFromDeg(angleInDeg)
          -sin(angleInRad), cos(angleInRad)];
 end
 
-function T_opposite = oppositeT(T)
-    R_new = transpose(T(1:2,1:2));
-    t_new = R_new * T(1:2,3);
-    T_opposite = [R_new, t_new;
-        zeros(1,2), 1];
+function vBar = createAugmentedVector(v)
+    vBar = [v;1];
 end 
-
+function tInOriginFrame = getTranslationInOriginFrame(T)
+    R_new = transpose(T(1:2,1:2));
+    tInOriginFrame = R_new * T(1:2,3);
+end
 % (3.b) Function to Plot the data and make jpg
 function plotPaths(data1, data2, fileName, resolution)
     % Check if the input matrices have the same number of columns
