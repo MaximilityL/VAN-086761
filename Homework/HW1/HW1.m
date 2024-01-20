@@ -172,9 +172,12 @@ function R = calculateRotationMatrixFromDeg(angleInDeg)
          -sin(angleInRad), cos(angleInRad)];
 end
 
+% (3.b) create augmented vector(v)
 function vBar = createAugmentedVector(v)
     vBar = [v;1];
 end 
+% (3.b) Calculate Translation in previous(could be origin) frame from pose transformation
+
 function tInOriginFrame = getTranslationInOriginFrame(T)
     R_new = transpose(T(1:2,1:2));
     tInOriginFrame = R_new * T(1:2,3);

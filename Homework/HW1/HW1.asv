@@ -172,17 +172,11 @@ function R = calculateRotationMatrixFromDeg(angleInDeg)
          -sin(angleInRad), cos(angleInRad)];
 end
 
-function T_opposite = oppositeT(T)
-    R_new = transpose(T(1:2,1:2));
-    R = T(1:2,1:2);
-    t_new = R_new * T(1:2,3);
-    T_opposite = [R_new, t_new;
-        zeros(1,2), 1];
-end
-
 function vBar = createAugmentedVector(v)
     vBar = [v;1];
 end 
+% (3.a) Calculate ground vehicle Rotation Matrix R from angle
+
 function tInOriginFrame = getTranslationInOriginFrame(T)
     R_new = transpose(T(1:2,1:2));
     tInOriginFrame = R_new * T(1:2,3);
