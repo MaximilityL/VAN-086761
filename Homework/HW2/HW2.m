@@ -1,0 +1,106 @@
+%% Hands-on Exercise
+%% Problem 1 - Projection of a 3D point
+
+clear all
+close all
+clc
+
+% Data Provided
+
+% Camera Specs
+
+f = 480; % Focal Length in each axis - [pixel]
+O = [320, 270]; % Principal Point - [pixel]
+s = 0; % Skew - Assumed 0
+% Camera Pose
+
+RG2C = [0.5363, -0.844, 0;
+        0.844,   0.5363, 0;
+         0,      0,       1];
+
+tCtoGinG = [-451.2459, 257.0322, 400]';
+
+% 3D point Data
+
+XinG = [350, -250, -35]'; % Point Coordinates
+
+z = [241.5, 169]'; % Image Observation
+
+% a - Camera Projection Matrix
+
+K = createCalibrationMatrix(f,f,O,s);
+
+tCtoGinC = RG2C * tCtoGinG;
+
+cameraPose = createCameraPose(RG2C, tCtoGinC);
+
+P = createProjectionMatrix(K, cameraPose);
+
+disp('Our Porjection Matrix is:');
+disp(P);
+
+% b - 3D point projection
+
+zProjected = getProjectedPixel(P, XinG);
+
+disp('Our image coordinates of our 3D point is:');
+disp(zProjected);
+
+% c - Repojection error
+
+errorReprojection = z - zProjected;
+
+disp('Our error of reprojection is:');
+disp(errorReprojection);
+
+%% Helper Functions
+
+% Create Augmented Vector (v -> vBar)
+function vBar = createAugmentedVector(v)
+    vBar = [v;1];
+end 
+
+% Convert Augmented Vector to Vector
+function v = convertAugmentedVectorToVector(vBar)
+    v = vBar(1:end-1);
+end
+% Create Homogenous Vector from Scale (vBar -> vTilde)
+function vTilde = createHomogenousVector(scale , vBar)
+    vTilde = scale * vBar;
+end
+
+% Convert Homogenous Vector to Augmented Vector (vTilda -> vBar)
+function vBar = convertHomogenousVectorToAugmentedVector(vTilde)
+    vBar = vTilde / vTilde(end);
+end
+
+% Create Camera Pose Matrix from Rotation Matrix and Translation Vector
+function cameraPose = createCameraPose(R, t)
+    cameraPose = [R, t];
+end
+
+% Create Calibration Matrix from Camera Specs
+function K = createCalibrationMatrix(fx, fy, O, s)
+    K=[fx, s, O(1);
+        0,  fy, O(2);
+        0,   0,  1];
+end 
+% Calibration Matrix and Camera Pose to Projection Matrix
+function P = createProjectionMatrix(K, cameraPose)
+    P = K * cameraPose;
+end
+
+% Get Projected Pixel from Projection Matrix and 3D Point
+function zProjected = getProjectedPixel(P, X)
+    Xbar = createAugmentedVector(X);
+
+    zTildeProjected = P * Xbar;
+
+    zBarProjected = convertHomogenousVectorToAugmentedVector(zTildeProjected);
+    
+    zProjected = convertAugmentedVectorToVector(zBarProjected);
+end
+
+
+
+
